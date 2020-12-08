@@ -1,7 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-require('dotenv').config()
+const { ObjectId } = require('mongodb');
+require('dotenv').config();
 
 const app = express();
 
@@ -14,18 +15,47 @@ const password = process.env.PASSWORD;
 const dbName = process.env.DB;
 
 const MongoClient = require('mongodb').MongoClient;
-const uri = `mongodb+srv://${user}:${password}@cluster0.vetwi.mongodb.net/${dbName}?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${user}:${password}@cluster0.muwip.mongodb.net/${dbName}?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
 client.connect(err => {
-    const collection = client.db("Tasks").collection("todos");
-    // console.log('database connected');
-    // client.close();
+    const qaCollection = client.db("chatbot").collection("qa");
+
+    app.get('/', (req, res) => {
+        res.send('Hello I am your new node js project');
+    })
+
+    app.get('/qa', (req, res) => {
+        qaCollection.find({})
+            .toArray((err, documents) => {
+                res.send(documents);
+            })
+    })
+
+    app.post('/insert', (req, res) => {
+        const question = req.body.question;
+        const answer = req.body.answer;
+        const email = req.body.email;
+
+        if (question && answer && email) {
+            qaCollection.insertOne({ question, answer, email })
+                .then(result => {
+                    res.send(result.insertedCount > 0)
+                })
+        }
+
+
+
+    })
+
+    app.post('/delete', (req, res) => {
+        qaCollection.deleteOne({"_id": ObjectId(req.body.id)})
+            .then(result => {
+                res.send(result.deletedCount > 0);
+            })
+    });
+
 });
-
-
-app.get('/', (req, res) => {
-    res.send('Hello I am your new node js project');
-})
 
 app.listen(5000); 
